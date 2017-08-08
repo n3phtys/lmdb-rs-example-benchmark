@@ -1,0 +1,12 @@
+[package]
+authors = ["nephtys <christopher.kaag@gmail.com>"]
+name = "lmdb-rs-benchmark"
+version = "0.1.0"
+[dependencies]
+lmdb = "0.7.1"
+rand = "0.3.16"
+serde = "1.0.11"
+serde_derive = "1.0.11"
+serde_json = "1.0.2"
+tempdir = "0.3.5"
+time = "0.1.38"
