@@ -120,6 +120,7 @@ fn benchmark_only_preparation_with_dir(b: &mut Bencher) {
         //println!("Counter={}", counter);
     })
 }
+
 #[bench]
 fn benchmark_only_preparation_with_dir_and_env(b: &mut Bencher) {
     let seed: &[_] = &[1, 2, 3, 4];
@@ -151,20 +152,17 @@ fn benchmark_only_preparation_with_dir_and_env(b: &mut Bencher) {
 
 #[bench]
 fn benchmark_add_time(b: &mut Bencher) {
-    b.iter(||{
+    b.iter(|| {
         let mut counter = 0i64;
         for _ in 0..1000 {
-
             let timespec = time::get_time();
             let mills = timespec.sec + timespec.nsec as i64 / 1000 / 1000;
 
             counter += mills;
-
         }
         counter
     })
 }
-
 
 
 #[bench]
@@ -196,6 +194,36 @@ fn benchmark_random_writes(b: &mut Bencher) {
     })
 }
 
+
+#[bench]
+fn benchmark_random_writes_in_batch(b: &mut Bencher) {
+    let seed: &[_] = &[1, 2, 3, 4];
+    let mut rng: StdRng = SeedableRng::from_seed(seed);
+
+    b.iter(|| {
+        let dir = tempdir::TempDir::new("temptestdir").unwrap();
+        let db_flags: lmdb::DatabaseFlags = lmdb::DatabaseFlags::empty();
+        let db_environment = lmdb::Environment::new().set_max_dbs(1).open(dir.as_ref()).unwrap();
+        let database = db_environment.create_db(None, db_flags).unwrap();
+
+        {
+            let mut rw_transaction: RwTransaction = RwTransaction::new(&db_environment).unwrap();
+            let tx_flags: WriteFlags = WriteFlags::empty();
+
+            for iteration in 0..100 {
+                let timespec = time::get_time();
+                let mills = timespec.sec + timespec.nsec as i64 / 1000 / 1000;
+                let random_number: u64 = rng.next_u64();
+                let datastruct = Datastructure { ts: mills, n: random_number };
+
+                let key = transform_u32_to_array_of_u8(iteration);
+                let data = serde_json::to_string(&datastruct).unwrap();
+                let _ = rw_transaction.put(database, &key, &data, tx_flags);
+            }
+            rw_transaction.commit().unwrap();
+        }
+    })
+}
 
 
 #[bench]
